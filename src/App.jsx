@@ -83,7 +83,7 @@ const App = () => {
               Damos vida à sua <span className="text-[#00ff41]">imaginação.</span>
             </h1>
             <p className="text-gray-400 text-lg max-w-lg leading-relaxed">
-              Especialistas em impressão em resina de alta definição. De bonecos e descorações exclusivas, onde cada detalhe é pensado para você.
+              Especialistas em impressão 3D de alta definição. De colecionáveis a decorações exclusivas, cada detalhe é cuidadosamente projetado para você.
             </p>
             <div className="flex gap-4">
               <a href="https://wa.me/5583993913523" target="_blank" rel="noopener noreferrer" className="bg-[#00ff41] text-black px-8 py-4 font-black uppercase tracking-tighter hover:bg-white transition-all flex items-center gap-2">
@@ -113,7 +113,7 @@ const App = () => {
               </h2>
               <div className="h-1 w-20 bg-[#00ff41]"></div>
               <p className="text-gray-400 text-lg leading-relaxed">
-                A IMAGINE nasceu da paixão por transformar modelos digitais em obras de arte tangíveis. Utilizamos tecnologia de ponta em impressão 3D (Resina) para garantir que cada ruga, sombra e detalhe seja fiel ao criador original.
+                A IMAGINE surgiu do desejo de dar vida a imaginação. Transformamos modelos 3D em peças reais, ricas em detalhes, utilizando impressões de alta precisão para honrar cada detalhe do seu projeto.
               </p>
               <ul className="space-y-4">
                 {['Tamanho Customizável', 'Pintura Profissional', 'Material de Alta Resistência'].map((item, idx) => (
@@ -129,8 +129,8 @@ const App = () => {
                 <p className="text-xs uppercase text-gray-500 font-bold">Customizável</p>
               </div>
               <div className="bg-[#1a1a1a] p-6 border border-white/5 space-y-2">
-                <h3 className="text-[#00ff41] font-black text-2xl tracking-tighter">HD</h3>
-                <p className="text-xs uppercase text-gray-500 font-bold">Resina Premium</p>
+                <h3 className="text-[#00ff41] font-black text-2xl tracking-tighter">QUALIDADE</h3>
+                <p className="text-xs uppercase text-gray-500 font-bold">Material Premium</p>
               </div>
             </div>
           </div>
@@ -141,11 +141,11 @@ const App = () => {
       <section id="feedback" className="py-24 px-6 relative">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16 space-y-4">
-            <h2 className="text-5xl font-black uppercase tracking-tighter">O que achou da <span className="text-[#00ff41]">experiência?</span></h2>
-            <p className="text-gray-500 uppercase tracking-widest text-xs font-bold">Sua opinião nos ajuda a evoluir</p>
+            <h2 className="text-5xl font-black uppercase tracking-tighter">Compartilhe a sua <span className="text-[#00ff41]">experiência?</span></h2>
+            <p className="text-gray-500 uppercase tracking-widest text-xs font-bold">Sua opinião nos ajuda a evoluir!</p>
           </div>
 
-          <form onSubmit={handleSubmitFeedback} className="bg-[#1a1a1a] border border-white/10 p-8 md:p-12 space-y-10">
+          <form onSubmit={handleSubmitFeedback} className="bg-[#1a1a1a] border border-white/10 p-8 md:p-10 space-y-10">
             <div className="grid md:grid-cols-2 gap-12">
               <div className="space-y-4">
                 <label className="block text-sm font-black uppercase tracking-widest">Recomendaria a loja para um amigo?</label>
@@ -229,7 +229,7 @@ const App = () => {
                 <span className="text-3xl font-black tracking-tighter uppercase italic">IMAGINE</span>
               </div>
               <p className="text-gray-500 text-sm">
-                Transformando o digital em colecionável. Qualidade Ryodan Studio e Kaidan3D.
+                Transformando o imaginario em peças colecionáveis com qualidade e precisão incomparáveis.
               </p>
             </div>
             
