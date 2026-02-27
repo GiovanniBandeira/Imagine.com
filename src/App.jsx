@@ -19,7 +19,7 @@ const App = () => {
     setLoading(true);
     setStatus('enviando');
 
-    const GOOGLE_SHEET_URL = ""; 
+    const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbzjC367WMlDcIu4iHGATEHVhWiSoafmnUAc5pZ7HVTnklEd9MicQJ2aR0LKtvEvlHNLKQ/exec"; 
 
     if (!GOOGLE_SHEET_URL) {
       setTimeout(() => {
