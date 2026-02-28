@@ -60,13 +60,13 @@ const App = () => {
                 className="w-full h-full"
               />
             </div>
-            <span className="text-2xl font-black tracking-tighter uppercase italic">IMAGINE</span>
+            <span className="text-2xl font-black text-black tracking-tighter uppercase italic">IMAGINE</span>
           </div>
           <div className="hidden md:flex gap-8 font-bold uppercase text-xs tracking-widest">
-            <a href="#home" className="hover:text-[#00ff41] transition-colors">Início</a>
-            <a href="#sobre" className="hover:text-[#00ff41] transition-colors">Sobre</a>
-            <a href="#contato" className="hover:text-[#00ff41] transition-colors">Contato</a>
-            <a href="#feedback" className="hover:text-[#00ff41] transition-colors text-[#00ff41]">Feedback</a>
+            <a href="#home" className="hover:text-white transition-colors text-[#000000]">Início</a>
+            <a href="#sobre" className="hover:text-white transition-colors text-[#000000]">Sobre</a>
+            <a href="#contato" className="hover:text-white transition-colors text-[#000000]">Contato</a>
+            <a href="#feedback" className="hover:text-white transition-colors text-[#000000]">Feedback</a>
           </div>
         </div>
       </nav>
