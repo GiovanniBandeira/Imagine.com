@@ -142,7 +142,7 @@ const App = () => {
                   {showcaseImages.map((img, idx) => (
                     <img
                       key={idx}
-                      src={`http://localhost:3000${img.url}`}
+                      src={img.url.startsWith('http') ? img.url : `http://localhost:3000${img.url}`}
                       alt="Modelo Finalizado Showcase"
                       className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${idx === currentShowcaseIndex ? 'opacity-100' : 'opacity-0'
                         }`}
