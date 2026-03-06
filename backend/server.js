@@ -16,23 +16,35 @@ const KEYFILEPATH = path.join(__dirname, 'client_secret.json');
 const TOKEN_PATH = path.join(__dirname, 'token.json');
 const SCOPES = ['https://www.googleapis.com/auth/drive.readonly'];
 
-// Carrega o Client Secret fornecido por você
-const credentials = JSON.parse(fs.readFileSync(KEYFILEPATH));
-const { client_secret, client_id, redirect_uris } = credentials.web;
+let drive;
+let oAuth2Client;
+let useMock = false;
 
-// Cria o cliente OAuth
-const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
-
-// Tenta verificar se já fizemos login antes (se o token.json existe)
 try {
-  const token = fs.readFileSync(TOKEN_PATH);
-  oAuth2Client.setCredentials(JSON.parse(token));
-  console.log("✅ Token de acesso encontrado! Servidor já está autenticado.");
-} catch (err) {
-  console.log("⚠️ Servidor não está autenticado ainda. Você precisa acessar http://localhost:3000/login primeiro!");
-}
+  // Carrega o Client Secret fornecido por você
+  const credentials = JSON.parse(fs.readFileSync(KEYFILEPATH));
+  const { client_secret, client_id, redirect_uris } = credentials.web;
 
-const drive = google.drive({ version: 'v3', auth: oAuth2Client });
+  // Cria o cliente OAuth
+  oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+
+  // Tenta verificar se já fizemos login antes (se o token.json existe)
+  try {
+    const token = fs.readFileSync(TOKEN_PATH);
+    oAuth2Client.setCredentials(JSON.parse(token));
+    console.log("✅ Token de acesso encontrado! Servidor já está autenticado.");
+  } catch (err) {
+    console.log("⚠️ Servidor não está autenticado ainda. Você precisa acessar http://localhost:3000/login primeiro!");
+  }
+
+  drive = google.drive({ version: 'v3', auth: oAuth2Client });
+} catch (err) {
+  console.log("⚠️ Arquivo client_secret.json não encontrado. Iniciando no modo MOCK (Simulação) para testes E2E/Locais.");
+  useMock = true;
+  oAuth2Client = {
+    generateAuthUrl: () => 'http://localhost:3000/mock-login-simulado',
+  };
+}
 
 /**
  * ROTA DE LOGIN: Acesse localhost:3000/login no navegador para dar a permissão
@@ -159,6 +171,26 @@ app.get('/api/models', async (req, res) => {
 
   const offset = parseInt(req.query.pageToken, 10) || 0;
   const LIMIT = 15; // Retorna 15 modelos por vez
+
+  if (useMock) {
+    if (offset > 0) return res.json({ models: [], nextPageToken: null });
+    
+    return res.json({
+      models: [
+        {
+          id: 'mock1',
+          name: 'Modelo Simulado 1 (Mock)',
+          images: [{ name: 'img1', url: 'https://images.unsplash.com/photo-1608889825103-eb5ed706fc64?w=500&h=500&fit=crop' }]
+        },
+        {
+          id: 'mock2',
+          name: 'Modelo Simulado 2 (Mock)',
+          images: [{ name: 'img2', url: 'https://images.unsplash.com/photo-1549313861-3358f54407b3?w=500&h=500&fit=crop' }]
+        }
+      ],
+      nextPageToken: null
+    });
+  }
 
   try {
     console.log(`[DEBUG] Nova requisição /api/models. Offset: ${offset}`);
@@ -320,6 +352,16 @@ app.get('/api/showcase', async (req, res) => {
   // ATENÇÃO: É preciso substituir isso pelo ID real da pasta "Modelos/Finalizados" depois!
   const SHOWCASE_FOLDER_ID = '1SbKIJj_sXz1dQt-mqwsWpPCZ9cpC_TSa';
 
+  if (useMock) {
+    return res.json({
+      images: [
+        { name: 'Mock 1', url: 'https://images.unsplash.com/photo-1608889825103-eb5ed706fc64?w=800&h=400&fit=crop' },
+        { name: 'Mock 2', url: 'https://images.unsplash.com/photo-1549313861-3358f54407b3?w=800&h=400&fit=crop' },
+        { name: 'Mock 3', url: 'https://images.unsplash.com/photo-1588666309990-d68f08e3d4a6?w=800&h=400&fit=crop' }
+      ]
+    });
+  }
+
   try {
     const q = `'${SHOWCASE_FOLDER_ID}' in parents and mimeType contains 'image/' and trashed = false`;
     const response = await drive.files.list({
@@ -344,7 +386,11 @@ app.get('/api/showcase', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor rolando na porta ${PORT}`);
-  console.log(`🔌 Conectado ao Google Apps via OAuth2!`);
-});
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`🚀 Servidor rolando na porta ${PORT}`);
+    console.log(`🔌 Conectado ao Google Apps via OAuth2!`);
+  });
+}
+
+module.exports = app;
