@@ -43,7 +43,7 @@ const SearchPage = ({ onBack, scriptUrl }) => {
 
   const fetchModels = async (token = null) => {
     // Aponta para a API Backend Local que acabamos de criar
-    const BACKEND_URL = 'http://localhost:3000/api/models';
+    const BACKEND_URL = 'https://imaginecom-production.up.railway.app/api/models';
 
     try {
       const isLoadMore = token !== null; // Determine if it's a "load more" call
@@ -213,7 +213,7 @@ const SearchPage = ({ onBack, scriptUrl }) => {
                       <div className="aspect-square relative overflow-hidden bg-[#222]">
                         <img
                           // O Backend Server serve o proxy da imagem
-                          src={model.images[0]?.url.startsWith('http') ? model.images[0].url : `http://localhost:3000${model.images[0]?.url}`}
+                          src={model.images[0]?.url.startsWith('http') ? model.images[0].url : `https://imaginecom-production.up.railway.app${model.images[0]?.url}`}
                           alt={model.name}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           loading="lazy"
@@ -304,7 +304,7 @@ const SearchPage = ({ onBack, scriptUrl }) => {
               <div className="w-full h-full max-h-[60vh] flex items-center justify-center relative">
                 <img
                   // Usa o Backend para abrir a imagem pesada sem dar erro de CORS do Google
-                  src={selectedAlbum.images[currentImageIndex].url.startsWith('http') ? selectedAlbum.images[currentImageIndex].url : `http://localhost:3000${selectedAlbum.images[currentImageIndex].url}`}
+                  src={selectedAlbum.images[currentImageIndex].url.startsWith('http') ? selectedAlbum.images[currentImageIndex].url : `https://imaginecom-production.up.railway.app${selectedAlbum.images[currentImageIndex].url}`}
                   alt={`${selectedAlbum.name} - ${currentImageIndex + 1}`}
                   className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg shadow-2xl"
                 />
@@ -331,7 +331,7 @@ const SearchPage = ({ onBack, scriptUrl }) => {
                     onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(idx); }}
                     className={`shrink-0 w-16 h-16 rounded-md overflow-hidden border-2 transition-all ${currentImageIndex === idx ? 'border-[#00ff41]' : 'border-transparent opacity-50 hover:opacity-100'}`}
                   >
-                    <img src={img.url.startsWith('http') ? img.url : `http://localhost:3000${img.url}`} className="w-full h-full object-cover" alt="thumbnail" />
+                    <img src={img.url.startsWith('http') ? img.url : `https://imaginecom-production.up.railway.app${img.url}`} className="w-full h-full object-cover" alt="thumbnail" />
                   </button>
                 ))}
               </div>

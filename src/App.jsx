@@ -20,7 +20,7 @@ const App = () => {
   useEffect(() => {
     const fetchShowcase = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/showcase');
+        const response = await fetch('https://imaginecom-production.up.railway.app/api/showcase');
         const data = await response.json();
         if (data.images && data.images.length > 0) {
           setShowcaseImages(data.images);
@@ -142,7 +142,7 @@ const App = () => {
                   {showcaseImages.map((img, idx) => (
                     <img
                       key={idx}
-                      src={img.url.startsWith('http') ? img.url : `http://localhost:3000${img.url}`}
+                      src={img.url.startsWith('http') ? img.url : `https://imaginecom-production.up.railway.app${img.url}`}
                       alt="Modelo Finalizado Showcase"
                       className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${idx === currentShowcaseIndex ? 'opacity-100' : 'opacity-0'
                         }`}

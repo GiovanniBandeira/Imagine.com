@@ -21,25 +21,35 @@ let oAuth2Client;
 let useMock = false;
 
 try {
-  // Carrega o Client Secret fornecido por você
-  const credentials = JSON.parse(fs.readFileSync(KEYFILEPATH));
+  let credentials;
+  // 1. Tenta carregar do Cofre (Railway Environment Variables)
+  if (process.env.GOOGLE_CREDENTIALS) {
+    console.log("[OAUTH] Carregando chaves via Variáveis de Ambiente (Produção)...");
+    credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+  } else {
+    // 2. Fica no arquivo físico (Localhost)
+    credentials = JSON.parse(fs.readFileSync(KEYFILEPATH));
+  }
+  
   const { client_secret, client_id, redirect_uris } = credentials.web;
-
-  // Cria o cliente OAuth
   oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
 
-  // Tenta verificar se já fizemos login antes (se o token.json existe)
   try {
-    const token = fs.readFileSync(TOKEN_PATH);
-    oAuth2Client.setCredentials(JSON.parse(token));
+    let tokenData;
+    if (process.env.GOOGLE_TOKEN) {
+      tokenData = JSON.parse(process.env.GOOGLE_TOKEN);
+    } else {
+      tokenData = JSON.parse(fs.readFileSync(TOKEN_PATH));
+    }
+    oAuth2Client.setCredentials(tokenData);
     console.log("✅ Token de acesso encontrado! Servidor já está autenticado.");
   } catch (err) {
-    console.log("⚠️ Servidor não está autenticado ainda. Você precisa acessar http://localhost:3000/login primeiro!");
+    console.log("⚠️ Servidor não está autenticado ainda. Você precisa acessar a Rota /login primeiro!");
   }
 
   drive = google.drive({ version: 'v3', auth: oAuth2Client });
 } catch (err) {
-  console.log("⚠️ Arquivo client_secret.json não encontrado. Iniciando no modo MOCK (Simulação) para testes E2E/Locais.");
+  console.log("⚠️ Arquivo/Variável client_secret não encontrado. Iniciando no modo MOCK (Simulação) para testes E2E/Locais.");
   useMock = true;
   oAuth2Client = {
     generateAuthUrl: () => 'http://localhost:3000/mock-login-simulado',
