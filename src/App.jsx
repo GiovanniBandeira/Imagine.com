@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Instagram, MessageCircle, Mail, Send, CheckCircle2, Info, ShoppingBag, Star } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Instagram, MessageCircle, Mail, Send, CheckCircle2, Info, ShoppingBag, Star, Search } from 'lucide-react';
+import SearchPage from './SearchPage';
 
 const App = () => {
   const [formData, setFormData] = useState({
@@ -9,6 +10,41 @@ const App = () => {
   });
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState('home'); // 'home' | 'search'
+
+  // Showcase Slider State
+  const [showcaseImages, setShowcaseImages] = useState([]);
+  const [currentShowcaseIndex, setCurrentShowcaseIndex] = useState(0);
+
+  // Busca as imagens finalizadas do Drive para o Banner
+  useEffect(() => {
+    const fetchShowcase = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/showcase');
+        const data = await response.json();
+        if (data.images && data.images.length > 0) {
+          setShowcaseImages(data.images);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar o showcase animado:", err);
+      }
+    };
+    if (currentPage === 'home') fetchShowcase();
+  }, [currentPage]);
+
+  // Animação automática do Slider
+  useEffect(() => {
+    if (showcaseImages.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setCurrentShowcaseIndex((prev) => (prev + 1) % showcaseImages.length);
+    }, 4000); // Troca a foto a cada 4 segundos
+
+    return () => clearInterval(interval);
+  }, [showcaseImages]);
+
+  // O URL do Google Apps Script depois de publicado
+  const [googleScriptUrl, setGoogleScriptUrl] = useState('https://script.google.com/macros/s/AKfycbyTDsQ35IuLcDY9Ln7ajA9YCASyYXPPh6CPmsSDDTKrUHdGlXHHN6ZxIBWiLwrAPxZh/exec');
 
   // URL da Logo carregada
   const logoUrl = "Logo3.0.svg";
@@ -19,7 +55,7 @@ const App = () => {
     setLoading(true);
     setStatus('enviando');
 
-    const GOOGLE_SHEET_URL = "https://script.google.com/macros/library/d/1Bz6D55eSvk6uRkW_VDjjKDNlp9fNYFL_Sv9o4qvKPIynI4ngru0ixyxC/1"; 
+    const GOOGLE_SHEET_URL = "https://script.google.com/macros/library/d/1Bz6D55eSvk6uRkW_VDjjKDNlp9fNYFL_Sv9o4qvKPIynI4ngru0ixyxC/1";
 
     if (!GOOGLE_SHEET_URL) {
       setTimeout(() => {
@@ -46,27 +82,32 @@ const App = () => {
     }
   };
 
+  if (currentPage === 'search') {
+    return <SearchPage onBack={() => setCurrentPage('home')} scriptUrl={googleScriptUrl} />;
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white font-sans selection:bg-[#08F868] selection:text-black">
-      
+
       {/* Navigation */}
       <nav className="fixed w-full z-50 bg-[#08F868] backdrop-blur-md border-b border-white/10">
         <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative w-12 h-12 items-center justify-center">
-              <img 
-                src={logoUrl} 
-                alt="Logo Imagine" 
+              <img
+                src={logoUrl}
+                alt="Logo Imagine"
                 className="w-full h-full"
               />
             </div>
             <span className="text-2xl font-black text-black tracking-tighter uppercase italic">IMAGINE</span>
           </div>
-          <div className="hidden md:flex gap-8 font-bold uppercase text-xs tracking-widest">
+          <div className="hidden md:flex gap-8 font-bold uppercase text-xs tracking-widest items-center">
             <a href="#home" className="hover:text-white transition-colors text-[#000000]">Início</a>
+            <a onClick={() => setCurrentPage('search')} className="hover:text-white transition-colors text-[#000000] cursor-pointer">Modelos</a>
             <a href="#sobre" className="hover:text-white transition-colors text-[#000000]">Sobre</a>
-            <a href="#contato" className="hover:text-white transition-colors text-[#000000]">Contato</a>
             <a href="#feedback" className="hover:text-white transition-colors text-[#000000]">Feedback</a>
+            <a href="#contato" className="hover:text-white transition-colors text-[#000000]">Contato</a>
           </div>
         </div>
       </nav>
@@ -77,7 +118,7 @@ const App = () => {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-12">
           <div className="flex-1 space-y-6">
             <div className="inline-block bg-[#00ff41] text-black px-3 py-1 text-xs font-black uppercase tracking-widest mb-2">
-              Action Figures & Colecionáveis 3D
+              Action Figures & Objetos 3D
             </div>
             <h1 className="text-6xl md:text-8xl font-black uppercase leading-none tracking-tighter">
               Damos vida à sua <span className="text-[#00ff41]">imaginação.</span>
@@ -86,18 +127,43 @@ const App = () => {
               Especialistas em impressão 3D de alta definição. De colecionáveis a decorações exclusivas, cada detalhe é cuidadosamente projetado para você.
             </p>
             <div className="flex gap-4">
-              <a href="https://wa.me/5583993913523" target="_blank" rel="noopener noreferrer" className="bg-[#00ff41] text-black px-8 py-4 font-black uppercase tracking-tighter hover:bg-white transition-all flex items-center gap-2">
-                Encomendar Agora <ShoppingBag size={18} />
+              <button onClick={() => setCurrentPage('search')} className="bg-[#00ff41] text-black px-8 py-4 font-black uppercase tracking-tighter hover:bg-white transition-all flex items-center gap-2 cursor-pointer">
+                Ver Catálogo <Search size={18} />
+              </button>
+              <a href="https://wa.me/5583993913523" target="_blank" rel="noopener noreferrer" className="bg-transparent border-2 border-[#00ff41] text-[#00ff41] px-8 py-4 font-black uppercase tracking-tighter hover:bg-[#00ff41] hover:text-black transition-all flex items-center gap-2 hidden sm:flex">
+                WhatsApp <MessageCircle size={18} />
               </a>
             </div>
           </div>
           <div className="flex-1 relative">
             <div className="w-full aspect-square bg-[#1a1a1a] border border-white/10 rounded-2xl flex items-center justify-center relative overflow-hidden group">
-               <div className="absolute inset-0 bg-gradient-to-tr from-[#00ff41]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-               <div className="text-center p-8">
-                  <span className="block text-[#00ff41] font-black text-4xl mb-2 italic">IMAGINE 3D</span>
-                  <span className="text-gray-500 uppercase text-sm tracking-widest italic">Arte • Tecnologia • Precisão</span>
-               </div>
+              {showcaseImages.length > 0 ? (
+                <>
+                  {showcaseImages.map((img, idx) => (
+                    <img
+                      key={idx}
+                      src={`http://localhost:3000${img.url}`}
+                      alt="Modelo Finalizado Showcase"
+                      className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${idx === currentShowcaseIndex ? 'opacity-100' : 'opacity-0'
+                        }`}
+                    />
+                  ))}
+                  {/* Overlay gradiente para manter o texto legível */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                  <div className="absolute bottom-6 left-0 right-0 text-center z-10 p-4">
+                    <span className="block text-[#00ff41] font-black text-3xl mb-1 italic drop-shadow-lg">IMAGINE 3D</span>
+                    <span className="text-white/90 uppercase text-xs tracking-widest italic drop-shadow-md">Arte • Tecnologia • Precisão</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="absolute inset-0 bg-gradient-to-tr from-[#00ff41]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="text-center p-8 z-10">
+                    <span className="block text-[#00ff41] font-black text-4xl mb-2 italic">IMAGINE 3D</span>
+                    <span className="text-gray-500 uppercase text-sm tracking-widest italic">Arte • Tecnologia • Precisão</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -155,9 +221,8 @@ const App = () => {
                       key={val}
                       type="button"
                       onClick={() => setFormData({ ...formData, recomendaria: val })}
-                      className={`flex-1 py-3 font-black uppercase tracking-tighter border transition-all ${
-                        formData.recomendaria === val ? 'bg-[#00ff41] border-[#00ff41] text-black' : 'border-white/10 text-white hover:border-[#00ff41]/50'
-                      }`}
+                      className={`flex-1 py-3 font-black uppercase tracking-tighter border transition-all ${formData.recomendaria === val ? 'bg-[#00ff41] border-[#00ff41] text-black' : 'border-white/10 text-white hover:border-[#00ff41]/50 cursor-pointer'
+                        }`}
                     >
                       {val}
                     </button>
@@ -173,9 +238,8 @@ const App = () => {
                       key={val}
                       type="button"
                       onClick={() => setFormData({ ...formData, qualidade: val })}
-                      className={`flex-1 py-3 font-black uppercase tracking-tighter border transition-all ${
-                        formData.qualidade === val ? 'bg-[#00ff41] border-[#00ff41] text-black' : 'border-white/10 text-white hover:border-[#00ff41]/50'
-                      }`}
+                      className={`flex-1 py-3 font-black uppercase tracking-tighter border transition-all ${formData.qualidade === val ? 'bg-[#00ff41] border-[#00ff41] text-black' : 'border-white/10 text-white hover:border-[#00ff41]/50 cursor-pointer'
+                        }`}
                     >
                       {val}
                     </button>
@@ -198,7 +262,7 @@ const App = () => {
             <div className="flex flex-col items-center gap-4">
               <button
                 disabled={loading}
-                className="w-full md:w-auto px-12 py-5 bg-[#00ff41] text-black font-black uppercase tracking-tighter hover:bg-white transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                className="w-full md:w-auto px-12 py-5 bg-[#00ff41] text-black font-black uppercase tracking-tighter hover:bg-white transition-all flex items-center justify-center gap-3 disabled:opacity-50 cursor-pointer"
               >
                 {loading ? 'Processando...' : 'Enviar Feedback'} <Send size={18} />
               </button>
@@ -220,19 +284,19 @@ const App = () => {
             <div className="space-y-6">
               <div className="flex items-center gap-3">
                 <div className="w-14 h-14 overflow-hidden flex items-center justify-center">
-                  <img 
-                    src={logoFooterUrl} 
-                    alt="Logo Imagine Footer" 
+                  <img
+                    src={logoFooterUrl}
+                    alt="Logo Imagine Footer"
                     className="w-full h-full object-contain"
                   />
                 </div>
                 <span className="text-3xl font-black tracking-tighter uppercase italic">IMAGINE</span>
               </div>
               <p className="text-gray-500 text-sm">
-                Transformando o imaginario em peças colecionáveis com qualidade e precisão incomparáveis.
+                Transformando o imaginario em realidade com qualidade e precisão incomparáveis.
               </p>
             </div>
-            
+
             <div className="space-y-4">
               <h4 className="font-black uppercase tracking-widest text-xs text-gray-400">Links Rápidos</h4>
               <nav className="flex flex-col gap-2 font-bold uppercase text-sm">
@@ -257,7 +321,7 @@ const App = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] uppercase font-bold tracking-[0.2em] text-gray-600">
             <span>© 2025 IMAGINE - ORÇAMENTO DE PEDIDOS</span>
             <span>Paraíba, Brasil</span>
