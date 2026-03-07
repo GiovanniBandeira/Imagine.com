@@ -109,7 +109,7 @@ app.get('/api/models', async (req, res) => {
 
   } catch (error) {
     console.error("Erro /api/models (Cloudinary):", error);
-    res.status(500).json({ error: 'Falha ao buscar modelos no Storage' });
+    res.status(500).json({ error: 'Falha ao buscar modelos no Storage', details: error.message || error.error?.message || error.toString() });
   }
 });
 
@@ -147,8 +147,8 @@ app.get('/api/showcase', async (req, res) => {
       res.json({ images: [] });
     }
   } catch (err) {
-    console.warn(`[SHOWCASE] Erro Cloudinary: ${err.message}`);
-    res.json({ images: [], error: 'Falha ao recuperar Showcase' });
+    console.warn(`[SHOWCASE] Erro Cloudinary:`, err);
+    res.json({ images: [], error: 'Falha ao recuperar Showcase', details: err.message || err.error?.message || err.toString() });
   }
 });
 
