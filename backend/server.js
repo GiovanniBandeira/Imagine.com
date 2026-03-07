@@ -33,12 +33,13 @@ if (process.env.CLOUDINARY_URL) {
  * 2. Para cada pasta, buscamos suas fotos
  */
 app.get('/api/models', async (req, res) => {
-  const nextCursor = req.query.pageToken || null;
+  const searchQuery = req.query.search || '';
+  const pageToken = parseInt(req.query.pageToken) || 0; // O Token agora é nossa base matemática de Offset (0, 15, 30)
   const LIMIT = 15;
 
   if (!process.env.CLOUDINARY_URL) {
     // Modo Simulação se usuário não botou a senha ainda
-    if (nextCursor) return res.json({ models: [], nextPageToken: null });
+    if (pageToken > 0) return res.json({ models: [], nextPageToken: null });
     return res.json({
       models: [
         {
@@ -100,13 +101,23 @@ app.get('/api/models', async (req, res) => {
       });
     }
 
-    // Transforma o Objeto agrupado em Array e aplica Limite de Paginação do Infinite Scroll (15 items)
-    const allModels = Object.values(albumsMap);
-    const validModels = allModels.slice(0, LIMIT);
+    // Transforma o Objeto agrupado em Array
+    let allModels = Object.values(albumsMap);
+
+    // BÔNUS PESQUISA GLOBAL: O Backend varre todo o armazenamento de imagens filtrando silenciosamente Pela string do App React
+    if (searchQuery) {
+      const lowerSearch = searchQuery.toLowerCase();
+      allModels = allModels.filter(m => m.name.toLowerCase().includes(lowerSearch));
+    }
+
+    // APLICAÇÃO DE PAGINAÇÃO MATEMÁTICA: Pega da Gaveta Atual até a Gaveta Atual + 15
+    const validModels = allModels.slice(pageToken, pageToken + LIMIT);
+    const nextOffset = pageToken + LIMIT;
+    const hasMore = nextOffset < allModels.length;
 
     res.json({
       models: validModels,
-      nextPageToken: validModels.length === allModels.length ? null : 'END_OF_PAGE'
+      nextPageToken: hasMore ? nextOffset.toString() : null
     });
 
   } catch (error) {

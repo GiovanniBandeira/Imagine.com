@@ -41,7 +41,7 @@ const SearchPage = ({ onBack, scriptUrl }) => {
     }
   ];
 
-  const fetchModels = async (token = null) => {
+  const fetchModels = async (token = null, searchArg = '') => {
     // Aponta para a API Backend Local que acabamos de criar no Render
     const BACKEND_URL = 'https://imagine-com.onrender.com/api/models';
 
@@ -53,10 +53,12 @@ const SearchPage = ({ onBack, scriptUrl }) => {
         setLoading(true);
       }
 
-      // Add the token to the URL if it exists
-      const fetchUrl = token ? `${BACKEND_URL}?pageToken=${encodeURIComponent(token)}` : BACKEND_URL;
+      // Add the token and search query to the URL
+      const url = new URL(BACKEND_URL);
+      if (token) url.searchParams.append('pageToken', token);
+      if (searchArg) url.searchParams.append('search', searchArg);
 
-      const response = await fetch(fetchUrl);
+      const response = await fetch(url.toString());
       if (!response.ok) {
         throw new Error('Servidor indisponível');
       }
@@ -83,7 +85,7 @@ const SearchPage = ({ onBack, scriptUrl }) => {
         // Isso faz com que a galeria "brote" na tela progressivamente, sem travar o usuário
         if (isBuilding && !token) {
           setTimeout(() => {
-            fetchModels();
+            fetchModels(null, searchArg);
           }, 5000);
         }
       }
@@ -96,9 +98,14 @@ const SearchPage = ({ onBack, scriptUrl }) => {
     }
   };
 
+  // Auto-Fetch Debounced: Aciona API do servidor .5s após o usuário parar de digitar
   useEffect(() => {
-    fetchModels();
-  }, [scriptUrl]);
+    const delayDebounceFn = setTimeout(() => {
+      fetchModels(null, searchTerm);
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, scriptUrl]);
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -111,10 +118,6 @@ const SearchPage = ({ onBack, scriptUrl }) => {
       document.body.style.overflow = 'unset';
     };
   }, [selectedAlbum]);
-
-  const filteredModels = models.filter(model =>
-    model.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   const handleWhatsAppRedirect = () => {
     const message = encodeURIComponent("Olá, vim pelo site, queria fazer o pedido de um modelo que não encontrei no site.");
@@ -187,7 +190,7 @@ const SearchPage = ({ onBack, scriptUrl }) => {
           </div>
         ) : (
           <>
-            {filteredModels.length === 0 ? (
+            {models.length === 0 ? (
               /* No Results State */
               <div className="h-[50vh] flex flex-col items-center justify-center gap-6 text-center border border-dashed border-white/10 rounded-2xl p-8 bg-[#111]">
                 <Search size={48} className="text-gray-600 mb-2" />
@@ -204,7 +207,7 @@ const SearchPage = ({ onBack, scriptUrl }) => {
               /* Gallery Grid */
               <div className="space-y-16">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {filteredModels.map((model) => (
+                  {models.map((model) => (
                     <div
                       key={model.id}
                       onClick={() => openAlbum(model)}
@@ -239,7 +242,7 @@ const SearchPage = ({ onBack, scriptUrl }) => {
                 {nextPageToken && (
                   <div className="flex justify-center mt-12 mb-8">
                     <button
-                      onClick={() => fetchModels(nextPageToken)}
+                      onClick={() => fetchModels(nextPageToken, searchTerm)}
                       disabled={loadingMore}
                       className="bg-transparent border-2 border-white/20 text-white px-8 py-3 font-bold uppercase tracking-widest hover:border-[#00ff41] hover:text-[#00ff41] transition-all rounded-full disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
