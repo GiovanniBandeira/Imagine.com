@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
+    "start": "node backend/server.js",
     "start:backend": "node backend/server.js"
   },
   "dependencies": {
