@@ -68,14 +68,17 @@ app.get('/api/models', async (req, res) => {
     // 2. Para cada subpasta encontrada, busca as fotos lá de dentro
     const modelsPromises = foldersRes.folders.map(async (folder) => {
       try {
-        const imagesRes = await cloudinary.search
-          .expression(`folder:"${folder.path}"`)
-          .sort_by('created_at', 'desc')
-          .max_results(50)
-          .execute();
+        const imagesRes = await cloudinary.api.resources({
+          type: 'upload',
+          prefix: folder.path + '/', // Busca todas as imagens com o prefixo exato da pasta
+          max_results: 50
+        });
 
         if (imagesRes.resources && imagesRes.resources.length > 0) {
-          const imagesMapped = imagesRes.resources.map(img => ({
+          // Ordena as fotos para as mais novas aparecerem primeiro nas thumbnails
+          const sortedResources = imagesRes.resources.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+
+          const imagesMapped = sortedResources.map(img => ({
             name: img.filename,
             // O Cloudinary já nos dá a URL pública e segura pronta para uso, sem precisar de proxy!
             url: img.secure_url 
@@ -121,15 +124,16 @@ app.get('/api/showcase', async (req, res) => {
   }
 
   try {
-    // Puxa as fotos apenas da pasta Showcase
-    const response = await cloudinary.search
-      .expression('folder:"Showcase"')
-      .sort_by('created_at', 'desc')
-      .max_results(15)
-      .execute();
+    // Puxa as fotos apenas da pasta Showcase via API padrão para não quebrar limite Free
+    const response = await cloudinary.api.resources({
+      type: 'upload',
+      prefix: 'Showcase/',
+      max_results: 15
+    });
 
     if (response.resources && response.resources.length > 0) {
-      const showcaseImages = response.resources.map(img => ({
+      const sortedResources = response.resources.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+      const showcaseImages = sortedResources.map(img => ({
         name: img.filename,
         url: img.secure_url
       }));
