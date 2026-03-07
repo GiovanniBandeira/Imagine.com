@@ -1,4 +1,10 @@
 require('dotenv').config();
+
+// CORRETOR AUTOMÁTICO DE URL (Precisa vir ANTES do require do Cloudinary)
+if (process.env.CLOUDINARY_URL && !process.env.CLOUDINARY_URL.startsWith('cloudinary://')) {
+  process.env.CLOUDINARY_URL = 'cloudinary://' + process.env.CLOUDINARY_URL;
+}
+
 const express = require('express');
 const cors = require('cors');
 const cloudinary = require('cloudinary').v2;
@@ -13,11 +19,6 @@ app.use(express.json());
 // === CONFIGURAÇÃO CLOUDINARY ===
 // O usuário fornecerá essas chaves via Vercel/Railway depois, e usaremos fallbacks locais para simulação caso não existam
 if (process.env.CLOUDINARY_URL) {
-  // CORRETOR AUTOMÁTICO DE URL: Se o usuário esquecer o prefixo cloudinary:// lá no Render, a gente injeta pra não crashar o NodeJS
-  if (!process.env.CLOUDINARY_URL.startsWith('cloudinary://')) {
-    process.env.CLOUDINARY_URL = 'cloudinary://' + process.env.CLOUDINARY_URL;
-  }
-  
   // A SDK do Cloudinary se autoconfigura sozinha se achar a variável CLOUDINARY_URL formatada certa
   console.log("✅ Conectado ao Cloudinary via CLOUDINARY_URL (Produção)");
 } else {
@@ -145,7 +146,7 @@ app.get('/api/showcase', async (req, res) => {
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(`🚀 Servidor rolando na porta ${PORT}`);
-    console.log(`🔌 Conectado ao Google Apps via OAuth2!`);
+    console.log(`🔌 Conectado ao Storage via Cloudinary CDN!`);
   });
 }
 
