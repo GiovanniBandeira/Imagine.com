@@ -57,49 +57,54 @@ app.get('/api/models', async (req, res) => {
   }
 
   try {
-    // 1. Busca subpastas (que representam os "Álbuns/Modelos") dentro da pasta raiz "Modelos"
-    const foldersRes = await cloudinary.api.sub_folders('Modelos', { max_results: LIMIT, next_cursor: nextCursor });
-    
-    // Se não tiver pastas, retorna vazio
-    if (!foldersRes.folders || foldersRes.folders.length === 0) {
+    // ABORDAGEM FREE-TIER: Pega todos os recursos físicos dentro de "Modelos" de uma vez pra escapar do bloqueio do sub_folders()
+    const resourcesRes = await cloudinary.api.resources({
+      type: 'upload',
+      prefix: 'Modelos/',
+      max_results: 500 // Puxa logo meio milheiro de imagens para o NodeJS mapear e agrupar
+    });
+
+    if (!resourcesRes.resources || resourcesRes.resources.length === 0) {
       return res.json({ models: [], nextPageToken: null });
     }
 
-    // 2. Para cada subpasta encontrada, busca as fotos lá de dentro
-    const modelsPromises = foldersRes.folders.map(async (folder) => {
-      try {
-        const imagesRes = await cloudinary.api.resources({
-          type: 'upload',
-          prefix: folder.path + '/', // Busca todas as imagens com o prefixo exato da pasta
-          max_results: 50
-        });
+    // Ordena da mais recente para a mais antiga globalmente
+    const sortedAll = resourcesRes.resources.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-        if (imagesRes.resources && imagesRes.resources.length > 0) {
-          // Ordena as fotos para as mais novas aparecerem primeiro nas thumbnails
-          const sortedResources = imagesRes.resources.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+    // Agrupamento na Munheca (JavaScript puro):
+    const albumsMap = {};
 
-          const imagesMapped = sortedResources.map(img => ({
-            name: img.filename,
-            // O Cloudinary já nos dá a URL pública e segura pronta para uso, sem precisar de proxy!
-            url: img.secure_url 
-          }));
+    for (const img of sortedAll) {
+      // img.folder ex: "Modelos/Busto Homem de Ferro"
+      const folderPath = img.folder;
+      
+      // Ignora arquivos soltos direto na raiz Modelos (se tiver)
+      if (folderPath === 'Modelos') continue;
+      if (folderPath === 'Showcase') continue; // Ignora se vier misturado acidentalmente
+      
+      const folderName = folderPath.replace('Modelos/', ''); // "Busto Homem de Ferro"
 
-          return {
-            id: folder.path, // Usamos o caminho como ID
-            name: folder.name, // Nome final do modelo
-            images: imagesMapped
-          };
-        }
-      } catch (err) { }
-      return null;
-    });
+      if (!albumsMap[folderPath]) {
+        albumsMap[folderPath] = {
+          id: folderPath,
+          name: folderName,
+          images: []
+        };
+      }
 
-    const results = await Promise.all(modelsPromises);
-    const validModels = results.filter(m => m !== null); // Filtra pastas sem fotos
+      albumsMap[folderPath].images.push({
+        name: img.filename,
+        url: img.secure_url
+      });
+    }
+
+    // Transforma o Objeto agrupado em Array e aplica Limite de Paginação do Infinite Scroll (15 items)
+    const allModels = Object.values(albumsMap);
+    const validModels = allModels.slice(0, LIMIT);
 
     res.json({
       models: validModels,
-      nextPageToken: foldersRes.next_cursor || null
+      nextPageToken: validModels.length === allModels.length ? null : 'END_OF_PAGE'
     });
 
   } catch (error) {
