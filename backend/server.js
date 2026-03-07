@@ -13,7 +13,12 @@ app.use(express.json());
 // === CONFIGURAÇÃO CLOUDINARY ===
 // O usuário fornecerá essas chaves via Vercel/Railway depois, e usaremos fallbacks locais para simulação caso não existam
 if (process.env.CLOUDINARY_URL) {
-  // A SDK do Cloudinary se autoconfigura sozinha se achar a variável CLOUDINARY_URL
+  // CORRETOR AUTOMÁTICO DE URL: Se o usuário esquecer o prefixo cloudinary:// lá no Render, a gente injeta pra não crashar o NodeJS
+  if (!process.env.CLOUDINARY_URL.startsWith('cloudinary://')) {
+    process.env.CLOUDINARY_URL = 'cloudinary://' + process.env.CLOUDINARY_URL;
+  }
+  
+  // A SDK do Cloudinary se autoconfigura sozinha se achar a variável CLOUDINARY_URL formatada certa
   console.log("✅ Conectado ao Cloudinary via CLOUDINARY_URL (Produção)");
 } else {
   // Modo de Segurança / Simulação antes do usuário entregar as senhas
