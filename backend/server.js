@@ -75,9 +75,11 @@ app.get('/api/models', async (req, res) => {
     const albumsMap = {};
 
     for (const img of sortedAll) {
-      // img.folder ex: "Modelos/Busto Homem de Ferro"
-      const folderPath = img.folder;
+      // API_Resources Free retorna "asset_folder" e não "folder"
+      const folderPath = img.asset_folder || img.folder;
       
+      if (!folderPath) continue; // Pula imagens perdidas sem pasta
+
       // Ignora arquivos soltos direto na raiz Modelos (se tiver)
       if (folderPath === 'Modelos') continue;
       if (folderPath === 'Showcase') continue; // Ignora se vier misturado acidentalmente
