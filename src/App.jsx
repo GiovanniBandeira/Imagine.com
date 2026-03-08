@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Instagram, MessageCircle, Mail, Send, CheckCircle2, Info, ShoppingBag, Star, Search } from 'lucide-react';
 import SearchPage from './SearchPage';
-
+import AdminPanel from './AdminPanel';
 const App = () => {
   const [formData, setFormData] = useState({
     recomendaria: 'sim',
@@ -84,6 +84,10 @@ const App = () => {
 
   if (currentPage === 'search') {
     return <SearchPage onBack={() => setCurrentPage('home')} scriptUrl={googleScriptUrl} />;
+  }
+
+  if (currentPage === 'admin') {
+    return <AdminPanel onBack={() => setCurrentPage('home')} />;
   }
 
   return (
@@ -323,7 +327,13 @@ const App = () => {
           </div>
 
           <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] uppercase font-bold tracking-[0.2em] text-gray-600">
-            <span>© 2025 IMAGINE - ORÇAMENTO DE PEDIDOS</span>
+            <span 
+              onClick={() => setCurrentPage('admin')} 
+              className="cursor-pointer hover:text-[#00ff41] transition-colors"
+              title="Acessar Administração"
+            >
+              © 2025 IMAGINE - ORÇAMENTO DE PEDIDOS
+            </span>
             <span>Paraíba, Brasil</span>
           </div>
         </div>

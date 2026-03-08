@@ -134,6 +134,51 @@ app.get('/api/models', async (req, res) => {
 });
 
 /**
+ * ROTA ADMIN POST: Aplica etiquetas (SFW ou NSFW) a uma pasta inteira no Cloudinary.
+ * O Frontend do Painel Admin enviará o 'folderId' e a 'tag'.
+ */
+app.post('/api/admin/tag', async (req, res) => {
+  const { folderId, tag } = req.body;
+  if (!process.env.CLOUDINARY_URL) {
+    return res.status(200).json({ success: true, mock: true, message: 'Modo simulação. Tagging não efetuado.' });
+  }
+
+  if (!folderId || !['nsfw', 'sfw'].includes(tag)) {
+    return res.status(400).json({ error: 'Parâmetros inválidos. Informe folderId e tag ("nsfw" ou "sfw").' });
+  }
+
+  try {
+    // 1. Pega todas as imagens dentro daquela pasta específica do modelo
+    const resourcesRes = await cloudinary.api.resources({
+      type: 'upload',
+      prefix: folderId + '/', // A barra no final garante que não puxe nomes parecidos
+      max_results: 500
+    });
+
+    if (!resourcesRes.resources || resourcesRes.resources.length === 0) {
+      return res.status(404).json({ error: 'Nenhuma imagem encontrada nesta pasta.' });
+    }
+
+    const publicIds = resourcesRes.resources.map(img => img.public_id);
+
+    // 2. Aplica a tag no grupo inteiro (Economiza chamadas de rede no Cloudinary)
+    await cloudinary.uploader.add_tag(tag, publicIds);
+
+    // 3. Remove a tag oposta para não gerar conflitos futuros
+    const oppositeTag = tag === 'nsfw' ? 'sfw' : 'nsfw';
+    try {
+      await cloudinary.uploader.remove_tag(oppositeTag, publicIds);
+    } catch(e) { /* Ignora se a tag oposta não existir */ }
+
+    console.log(`✅ Pasta "${folderId}" classificada como [${tag.toUpperCase()}] por comando Manual.`);
+    return res.json({ success: true, message: `Tag ${tag} aplicada com sucesso.` });
+  } catch (error) {
+    console.error("Erro /api/admin/tag:", error);
+    res.status(500).json({ error: 'Falha ao classificar a pasta.', details: error.message || error.toString() });
+  }
+});
+
+/**
  * ROTA SHOWCASE (HOME): Pegas as fotos de uma pasta específica
  * O frontend usa isso para montar o banner rotativo animado.
  */
