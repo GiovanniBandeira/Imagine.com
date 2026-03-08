@@ -126,7 +126,8 @@ async function migrateFolder(driveFolderId, cloudFolder, depth = 0) {
           await sleep(400); // FREIO ABS entre uploads grossos
           
         } catch(uploadErr) {
-           console.error(`❌ Falhou ao transferir ${file.name}: ${uploadErr.message}`);
+           const errMsg = uploadErr?.message || uploadErr?.error?.message || JSON.stringify(uploadErr) || 'Erro Desconhecido';
+           console.error(`❌ Falhou ao transferir ${file.name}: ${errMsg}`);
            await sleep(1000); // Se deu erro de limite estourado, puxa o freio de mão por 1 segundo inteiro
         }
       }
