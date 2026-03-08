@@ -93,13 +93,18 @@ app.get('/api/models', async (req, res) => {
           id: folderPath,
           name: folderName,
           images: [],
-          isNsfw: false // Pressupõe Livre até achar Prova do Contrário
+          isNsfw: false, // Pressupõe Livre até achar Prova do Contrário
+          isSfw: false   // Nova flag para saber se já foi validado manualmente como Livre
         };
       }
 
       // Se qualquer recurso da galeria detiver NUDEZ, carimba a pasta inteira.
       if (img.tags && img.tags.includes('nsfw')) {
         albumsMap[folderPath].isNsfw = true;
+      }
+      // Registra também se já foi explicitamente classificado como SFW no painel
+      if (img.tags && img.tags.includes('sfw')) {
+        albumsMap[folderPath].isSfw = true;
       }
 
       albumsMap[folderPath].images.push({

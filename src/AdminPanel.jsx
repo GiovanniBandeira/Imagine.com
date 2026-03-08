@@ -38,7 +38,9 @@ const AdminPanel = ({ onBack }) => {
         const data = await res.json();
         
         if (data.models) {
-          allFetched = [...allFetched, ...data.models];
+          // A mágica: Só mostra pro Lojista o que ainda NÃO FOI classificado nem como +18 nem como Livre
+          const unclassified = data.models.filter(m => !m.isNsfw && !m.isSfw);
+          allFetched = [...allFetched, ...unclassified];
         }
         token = data.nextPageToken;
         
