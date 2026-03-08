@@ -1,4 +1,5 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 // CORRETOR AUTOMÁTICO DE URL (Precisa vir ANTES do require do Cloudinary)
 if (process.env.CLOUDINARY_URL && !process.env.CLOUDINARY_URL.startsWith('cloudinary://')) {
@@ -196,7 +197,7 @@ app.post('/api/report', async (req, res) => {
   
   try {
      const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-     const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+     const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
      // 1. Baixa a foto apontada
      const imgRes = await fetch(imageUrl);
@@ -237,7 +238,7 @@ app.post('/api/report', async (req, res) => {
      }
   } catch (err) {
       console.error("Erro no /api/report (Gemini Engine):", err.message);
-      res.status(500).json({ error: 'Sistema Analítico ocupado. A equipe manual verificará sua denúncia em breve!' });
+      res.status(500).json({ error: 'Sistema Analítico ocupado. A equipe manual verificará sua denúncia em breve!', details: err.message || err.toString() });
   }
 });
 
