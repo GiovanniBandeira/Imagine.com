@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { Search, Image as ImageIcon, MessageCircle, X, ChevronLeft, ChevronRight, Loader2, EyeOff, Flag } from 'lucide-react';
 
 const SearchPage = ({ onBack, scriptUrl }) => {
