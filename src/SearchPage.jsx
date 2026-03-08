@@ -13,6 +13,10 @@ const SearchPage = ({ onBack, scriptUrl }) => {
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  // NSFW State
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [pendingNsfwAlbum, setPendingNsfwAlbum] = useState(null);
+
   // Fake data for testing before the real script URL is ready
   const DUMMY_DATA = [
     {
@@ -131,8 +135,12 @@ const SearchPage = ({ onBack, scriptUrl }) => {
   };
 
   const openAlbum = (model) => {
-    setSelectedAlbum(model);
-    setCurrentImageIndex(0);
+    if (model.isNsfw && !ageConfirmed) {
+      setPendingNsfwAlbum(model);
+    } else {
+      setSelectedAlbum(model);
+      setCurrentImageIndex(0);
+    }
   };
 
   const closeAlbum = () => {
@@ -218,9 +226,15 @@ const SearchPage = ({ onBack, scriptUrl }) => {
                           // O Backend Server serve o proxy da imagem
                           src={model.images[0]?.url.startsWith('http') ? model.images[0].url : `https://imagine-com.onrender.com${model.images[0]?.url}`}
                           alt={model.name}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ${model.isNsfw && !ageConfirmed ? 'blur-2xl scale-125' : ''}`}
                           loading="lazy"
                         />
+                        {/* Selo +18 */}
+                        {model.isNsfw && !ageConfirmed && (
+                           <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                              <span className="bg-red-600 text-white font-black px-3 py-1 rounded-md border-2 border-red-800 text-sm transform -rotate-12 shadow-2xl tracking-widest">+18 NSFW</span>
+                           </div>
+                        )}
                         {model.images.length > 1 && (
                           <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-bold border border-white/10 text-white">
                             <ImageIcon size={14} className="text-[#00ff41]" />
@@ -346,6 +360,39 @@ const SearchPage = ({ onBack, scriptUrl }) => {
             >
               <MessageCircle size={18} /> Quero este Modelo
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Age Gate Modal */}
+      {pendingNsfwAlbum && (
+        <div className="fixed inset-0 z-[110] bg-black/95 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-[#111] border border-red-900/50 rounded-2xl p-8 text-center space-y-6 shadow-2xl">
+            <div className="w-16 h-16 bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/30">
+              <span className="text-2xl font-black">+18</span>
+            </div>
+            <h3 className="text-2xl font-black uppercase tracking-tighter text-white">Conteúdo Restrito</h3>
+            <p className="text-gray-400 text-sm leading-relaxed">
+              O modelo <strong>{pendingNsfwAlbum.name}</strong> pode conter nudez explícita ou imagens de caráter erotizado voltadas para o público adulto.
+            </p>
+            <div className="pt-4 space-y-3">
+              <button
+                onClick={() => {
+                  setAgeConfirmed(true);
+                  openAlbum(pendingNsfwAlbum);
+                  setPendingNsfwAlbum(null);
+                }}
+                className="w-full bg-red-600 text-white px-6 py-4 font-black uppercase tracking-tighter hover:bg-red-500 transition-colors rounded-xl flex justify-center items-center gap-2"
+              >
+                Tenho mais de 18 anos
+              </button>
+              <button
+                onClick={() => setPendingNsfwAlbum(null)}
+                className="w-full bg-transparent border-2 border-white/10 text-gray-300 px-6 py-4 font-black uppercase tracking-tighter hover:bg-white/5 transition-colors rounded-xl"
+              >
+                Voltar com Segurança
+              </button>
+            </div>
           </div>
         </div>
       )}

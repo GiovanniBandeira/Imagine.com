@@ -39,6 +39,9 @@ try {
 // 3. TRANSFERÊNCIA DIRETA DRIVE -> CLOUDINARY
 // ==============================================
 
+// Função para dar Timeout entre fotos e evitar "Too Many Requests" do Cloudinary
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function migrateFolder(driveFolderId, cloudFolder, depth = 0) {
   try {
     const q = `'${driveFolderId}' in parents and trashed = false`;
@@ -62,6 +65,7 @@ async function migrateFolder(driveFolderId, cloudFolder, depth = 0) {
       if (file.mimeType === 'application/vnd.google-apps.folder') {
         const newCloudFolder = `${cloudFolder}/${file.name}`;
         console.log(`📁 Acessando Álbum: ${file.name}...`);
+        await sleep(500); // Pausa pra evitar bombardeio visual na tela
         await migrateFolder(file.id, newCloudFolder, depth + 1);
       } 
       // TRATAMENTO DE ATALHOS (SHORTCUTS) - A raiz do cliente é cheia deles!
@@ -69,15 +73,36 @@ async function migrateFolder(driveFolderId, cloudFolder, depth = 0) {
         if (file.shortcutDetails && file.shortcutDetails.targetMimeType === 'application/vnd.google-apps.folder') {
            const newCloudFolder = `${cloudFolder}/${file.name}`;
            console.log(`🔗 Seguindo Atalho para Álbum: ${file.name}...`);
+           await sleep(500);
            await migrateFolder(file.shortcutDetails.targetId, newCloudFolder, depth + 1);
         }
       }
       // TRATAMENTO DE IMAGENS
       else if (file.mimeType.includes('image/')) {
-        // É FOTO! Vamos transferir direto da memoria do Google para o Cloudinary
-        console.log(`⏳ Transferindo foto: ${file.name}...`);
-        
         try {
+          // ==========================================
+          // NOVIDADE: VERIFICAÇÃO INCREMENTAL
+          // ==========================================
+          // Lê os arquivos que já existem ANTES de mandar a foto pesada
+          const existingRes = await cloudinary.api.resources({
+            type: 'upload',
+            prefix: `${cloudFolder}/`,
+            max_results: 100
+          });
+          
+          const alreadyExists = existingRes.resources.find(img => img.filename === file.name.split('.')[0] || img.display_name === file.name);
+
+          if (alreadyExists) {
+            console.log(`⏭️  Pulando ${file.name} (Já existe na nuvem)`);
+            await sleep(200); // FREIO ABS (Anti-Ban)
+            continue; // Pula pra próxima foto!
+          }
+          
+          // ==========================================
+          // UPLOAD NA VEIA (Se não existir)
+          // ==========================================
+          console.log(`⏳ Transferindo foto Nova: ${file.name}...`);
+          
           // Coleta os bytes reais da foto no Google Drive em Stream
           const imgResponse = await drive.files.get({ fileId: file.id, alt: 'media' }, { responseType: 'stream' });
           
@@ -98,8 +123,11 @@ async function migrateFolder(driveFolderId, cloudFolder, depth = 0) {
             imgResponse.data.pipe(uploadStream);
           });
           
+          await sleep(400); // FREIO ABS entre uploads grossos
+          
         } catch(uploadErr) {
            console.error(`❌ Falhou ao transferir ${file.name}: ${uploadErr.message}`);
+           await sleep(1000); // Se deu erro de limite estourado, puxa o freio de mão por 1 segundo inteiro
         }
       }
     }

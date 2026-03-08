@@ -62,7 +62,8 @@ app.get('/api/models', async (req, res) => {
     const resourcesRes = await cloudinary.api.resources({
       type: 'upload',
       prefix: 'Modelos/',
-      max_results: 500 // Puxa logo meio milheiro de imagens para o NodeJS mapear e agrupar
+      max_results: 500, // Puxa logo meio milheiro de imagens para o NodeJS mapear e agrupar
+      tags: true // Puxa as Tags (+18 / sfw) adicionadas pelo robô da Gemini Vision
     });
 
     if (!resourcesRes.resources || resourcesRes.resources.length === 0) {
@@ -91,8 +92,14 @@ app.get('/api/models', async (req, res) => {
         albumsMap[folderPath] = {
           id: folderPath,
           name: folderName,
-          images: []
+          images: [],
+          isNsfw: false // Pressupõe Livre até achar Prova do Contrário
         };
+      }
+
+      // Se qualquer recurso da galeria detiver NUDEZ, carimba a pasta inteira.
+      if (img.tags && img.tags.includes('nsfw')) {
+        albumsMap[folderPath].isNsfw = true;
       }
 
       albumsMap[folderPath].images.push({
