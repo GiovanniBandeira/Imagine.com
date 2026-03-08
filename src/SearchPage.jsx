@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Image as ImageIcon, MessageCircle, X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { Search, Image as ImageIcon, MessageCircle, X, ChevronLeft, ChevronRight, Loader2, EyeOff } from 'lucide-react';
 
 const SearchPage = ({ onBack, scriptUrl }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -226,13 +226,21 @@ const SearchPage = ({ onBack, scriptUrl }) => {
                           // O Backend Server serve o proxy da imagem
                           src={model.images[0]?.url.startsWith('http') ? model.images[0].url : `https://imagine-com.onrender.com${model.images[0]?.url}`}
                           alt={model.name}
-                          className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ${model.isNsfw && !ageConfirmed ? 'blur-2xl scale-125' : ''}`}
+                          className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ${model.isNsfw && !ageConfirmed ? 'blur-[40px] scale-150 grayscale-[50%]' : ''}`}
                           loading="lazy"
                         />
-                        {/* Selo +18 */}
+                        {/* Seleção +18 Estilizada (Premium Blur) */}
                         {model.isNsfw && !ageConfirmed && (
-                           <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                              <span className="bg-red-600 text-white font-black px-3 py-1 rounded-md border-2 border-red-800 text-sm transform -rotate-12 shadow-2xl tracking-widest">+18 NSFW</span>
+                           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm p-4 text-center transition-all">
+                              <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mb-3 border border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+                                 <EyeOff className="text-red-500" size={20} />
+                              </div>
+                              <span className="bg-gradient-to-r from-red-600 to-red-800 text-white font-black px-3 py-1 rounded-sm border-b border-red-400 text-xs shadow-2xl tracking-[0.2em] mb-2 uppercase">
+                                +18 Restrito
+                              </span>
+                              <span className="text-[9px] text-gray-300 font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-2 group-hover:translate-y-0">
+                                Toque para verificar
+                              </span>
                            </div>
                         )}
                         {model.images.length > 1 && (
