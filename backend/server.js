@@ -8,6 +8,7 @@ if (process.env.CLOUDINARY_URL && !process.env.CLOUDINARY_URL.startsWith('cloudi
 const express = require('express');
 const cors = require('cors');
 const cloudinary = require('cloudinary').v2;
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -180,6 +181,63 @@ app.post('/api/admin/tag', async (req, res) => {
   } catch (error) {
     console.error("Erro /api/admin/tag:", error);
     res.status(500).json({ error: 'Falha ao classificar a pasta.', details: error.message || error.toString() });
+  }
+});
+
+/**
+ * ROTA PÚBLICA DE DENÚNCIA (ON-DEMAND AI)
+ * Aciona o cérebro da Google Gemini apenas para uma imagem em um report específico.
+ */
+app.post('/api/report', async (req, res) => {
+  const { folderId, imageUrl } = req.body;
+  if (!process.env.GEMINI_API_KEY) {
+     return res.status(500).json({ error: 'Filtro Automático de IA offline. Apenas moderação manual disponível.' });
+  }
+  
+  try {
+     const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+     const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+     // 1. Baixa a foto apontada
+     const imgRes = await fetch(imageUrl);
+     const arrayBuffer = await imgRes.arrayBuffer();
+     const buffer = Buffer.from(arrayBuffer);
+
+     // 2. IA Inspeciona a foto em frações de segundo
+     const prompt = 'Analise esta imagem de um modelo 3D/miniatura. Ela contém nudez explícita, sensualização extrema (foco indevido em partes íntimas se for feminina), ou conteúdo sexual destinado para adultos (+18)? Responda APENAS com "SIM" ou "NAO".';
+     
+     const iaResponse = await model.generateContent({
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { inlineData: { mimeType: 'image/jpeg', data: buffer.toString('base64') } },
+              { text: prompt }
+            ]
+          }
+        ],
+        generationConfig: { temperature: 0.0 } // 100% Preciso, sem criatividade
+     });
+
+     const isAdult = iaResponse.response.text().trim().toUpperCase().includes('SIM');
+
+     if (isAdult) {
+        // Se for +18 mesmo, pune a pasta inteira no servidor Cloudinary para blindar ela imediamante na vitrine
+        const resourcesRes = await cloudinary.api.resources({ type: 'upload', prefix: folderId + '/', max_results: 500 });
+        if (resourcesRes.resources && resourcesRes.resources.length > 0) {
+           const publicIds = resourcesRes.resources.map(img => img.public_id);
+           await cloudinary.uploader.add_tag('nsfw', publicIds);
+           console.log(`🚨 [DENÚNCIA PROCEDE] Gemini AI marcou a pasta "${folderId}" como +18.`);
+           return res.json({ success: true, banned: true, message: 'Conteúdo Removido Imediatamente pelo Sistema.' });
+        }
+     } else {
+        // Alarme falso do cliente/criança que quis sacanear o botão
+        console.log(`ℹ️ [DENÚNCIA Falsa] A pasta "${folderId}" é segura. Denúncia arquivada.`);
+        return res.json({ success: true, banned: false, message: 'O conteúdo foi analisado mas considerado seguro.' });
+     }
+  } catch (err) {
+      console.error("Erro no /api/report (Gemini Engine):", err.message);
+      res.status(500).json({ error: 'Sistema Analítico ocupado. A equipe manual verificará sua denúncia em breve!' });
   }
 });
 

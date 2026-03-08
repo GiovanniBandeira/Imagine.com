@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Image as ImageIcon, MessageCircle, X, ChevronLeft, ChevronRight, Loader2, EyeOff } from 'lucide-react';
+import { Search, Image as ImageIcon, MessageCircle, X, ChevronLeft, ChevronRight, Loader2, EyeOff, Flag } from 'lucide-react';
 
 const SearchPage = ({ onBack, scriptUrl }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -16,6 +15,7 @@ const SearchPage = ({ onBack, scriptUrl }) => {
   // NSFW State
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [pendingNsfwAlbum, setPendingNsfwAlbum] = useState(null);
+  const [reportingId, setReportingId] = useState(null);
 
   // Fake data for testing before the real script URL is ready
   const DUMMY_DATA = [
@@ -134,6 +134,43 @@ const SearchPage = ({ onBack, scriptUrl }) => {
     window.open(`https://wa.me/5583993913523?text=${message}`, '_blank');
   };
 
+  const handleReport = async (e, model) => {
+    e.stopPropagation();
+    if (reportingId) return;
+    
+    // Confirmação dupla para não reportar sem querer
+    if (!window.confirm(`Deseja denunciar "${model.name}" como conteúdo Explícito/Sensível? A IA analisará na hora.`)) return;
+    
+    setReportingId(model.id);
+    try {
+      const BACKEND_URL = window.location.hostname === 'localhost' 
+          ? 'http://localhost:3000/api/report' 
+          : 'https://imagine-com.onrender.com/api/report';
+
+      const res = await fetch(BACKEND_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+           folderId: model.id, 
+           imageUrl: model.images[0]?.url.startsWith('http') ? model.images[0].url : `https://imagine-com.onrender.com${model.images[0]?.url}` 
+        })
+      });
+      const data = await res.json();
+      
+      if (data.banned) {
+         alert('🚨 Denúncia Aceita: O conteúdo foi removido/ocultado pela IA.');
+         // Atualiza Tela Imediatamente
+         setModels(prev => prev.map(m => m.id === model.id ? { ...m, isNsfw: true } : m));
+      } else {
+         alert('ℹ️ Denúncia Verificada: O Sistema de IA não detectou violações drásticas. A denúncia foi arquivada.');
+      }
+    } catch(err) {
+      alert('Erro de comunicação. O servidor de IA está ocupado no momento.');
+    } finally {
+      setReportingId(null);
+    }
+  };
+
   const openAlbum = (model) => {
     if (model.isNsfw && !ageConfirmed) {
       setPendingNsfwAlbum(model);
@@ -229,6 +266,18 @@ const SearchPage = ({ onBack, scriptUrl }) => {
                           className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ${model.isNsfw && !ageConfirmed ? 'blur-[40px] scale-150 grayscale-[50%]' : ''}`}
                           loading="lazy"
                         />
+                        
+                        {/* Botão de Denúncia Flutuante Inteligente */}
+                        {!model.isNsfw && (
+                          <button 
+                             onClick={(e) => handleReport(e, model)}
+                             disabled={reportingId === model.id}
+                             title="Denunciar como Adulto (+18)"
+                             className="absolute top-3 left-3 bg-black/40 hover:bg-red-600/90 backdrop-blur-md p-2 rounded-full text-white/50 hover:text-white opacity-0 group-hover:opacity-100 transition-all z-10 disabled:opacity-100"
+                          >
+                            {reportingId === model.id ? <Loader2 size={16} className="animate-spin text-white" /> : <Flag size={16} />}
+                          </button>
+                        )}
                         {/* Seleção +18 Minimalista */}
                         {model.isNsfw && !ageConfirmed && (
                            <div className="absolute inset-0 flex items-end justify-start p-3 bg-black/20 transition-all">
