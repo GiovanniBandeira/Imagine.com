@@ -1,455 +1,285 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Image as ImageIcon, MessageCircle, X, ChevronLeft, ChevronRight, Loader2, EyeOff, Flag } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Image as ImageIcon, ArrowUp, X, MessageCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import galeriaData from './data/galeria.json';
 
-const SearchPage = ({ onBack, scriptUrl }) => {
+const WHATSAPP_NUMBER = "5583993913523";
+
+const SearchPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [models, setModels] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState('');
-  const [nextPageToken, setNextPageToken] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState('Todos');
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [selectedModel, setSelectedModel] = useState(null); // Para o Modal de Álbum
+  const [currentImageIndex, setCurrentImageIndex] = useState(0); // Controle do Carrossel
 
-  // Album Modal state
-  const [selectedAlbum, setSelectedAlbum] = useState(null);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  // Gerar Categorias Dinamicamente com base no Drive!
+  const uniqueCategories = Array.from(new Set(galeriaData.map(item => item.category)));
+  const CATEGORIES = ['Todos', ...uniqueCategories].sort();
 
-  // NSFW State
-  const [ageConfirmed, setAgeConfirmed] = useState(false);
-  const [pendingNsfwAlbum, setPendingNsfwAlbum] = useState(null);
-  const [reportingId, setReportingId] = useState(null);
+  // Função de Filtragem Conjunta
+  const filteredModels = galeriaData.filter(model => {
+    const matchTerm = `${model.title} ${model.subcategory} ${model.category}`.toLowerCase();
+    const matchesSearch = matchTerm.includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === 'Todos' || model.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
-  // Fake data for testing before the real script URL is ready
-  const DUMMY_DATA = [
-    {
-      id: '1',
-      name: 'Busto Homem de Ferro',
-      images: [
-        { url: 'https://images.unsplash.com/photo-1608889825103-eb5ed706fc64?w=500&h=500&fit=crop', name: 'iron1.jpg' },
-        { url: 'https://images.unsplash.com/photo-1549313861-3358f54407b3?w=500&h=500&fit=crop', name: 'iron2.jpg' }
-      ]
-    },
-    {
-      id: '2',
-      name: 'Miniatura Darth Vader',
-      images: [
-        { url: 'https://images.unsplash.com/photo-1478479405421-ce83c92fb3ba?w=500&h=500&fit=crop', name: 'vader.jpg' }
-      ]
-    },
-    {
-      id: '3',
-      name: 'Action Figure Goku',
-      images: [
-        { url: 'https://images.unsplash.com/photo-1588666309990-d68f08e3d4a6?w=500&h=500&fit=crop', name: 'goku1.jpg' },
-        { url: 'https://images.unsplash.com/photo-1606663889134-b1dedb5ed8b7?w=500&h=500&fit=crop', name: 'goku2.jpg' },
-        { url: 'https://images.unsplash.com/photo-1534800891164-a1d96b5114e7?w=500&h=500&fit=crop', name: 'goku3.jpg' }
-      ]
-    }
-  ];
-
-  const fetchModels = async (token = null, searchArg = '') => {
-    // Aponta para a API Backend Local que acabamos de criar no Render
-    const BACKEND_URL = 'https://imagine-com.onrender.com/api/models';
-
-    try {
-      const isLoadMore = token !== null; // Determine if it's a "load more" call
-      if (isLoadMore) {
-        setLoadingMore(true);
-      } else {
-        setLoading(true);
-      }
-
-      // Add the token and search query to the URL
-      const url = new URL(BACKEND_URL);
-      if (token) url.searchParams.append('pageToken', token);
-      if (searchArg) url.searchParams.append('search', searchArg);
-
-      const response = await fetch(url.toString());
-      if (!response.ok) {
-        throw new Error('Servidor indisponível');
-      }
-
-      const isBuilding = response.headers.get('x-cache-status') === 'building';
-      const data = await response.json();
-
-      if (data.error) {
-        setError(data.error);
-      } else {
-        // Obter os modelos do JSON no novo formato da API Node.js
-        const fetchedModels = data.models || [];
-
-        if (token) {
-          // If paginating, append
-          setModels(prev => [...prev, ...fetchedModels]);
-        } else {
-          setModels(fetchedModels);
-        }
-        // Save the next page token
-        setNextPageToken(data.nextPageToken || null);
-
-        // Se o servidor ainda estiver construindo o cache no fundo, recarrega daqui a 5 segundos
-        // Isso faz com que a galeria "brote" na tela progressivamente, sem travar o usuário
-        if (isBuilding && !token) {
-          setTimeout(() => {
-            fetchModels(null, searchArg);
-          }, 5000);
-        }
-      }
-    } catch (err) {
-      setError('Erro ao conectar com a API Backend. Certifique-se de que o Terminal do servidor está rodando!');
-      console.error("Fetch error: ", err);
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  };
-
-  // Auto-Fetch Debounced: Aciona API do servidor .5s após o usuário parar de digitar
+  // Mostra botão de Topo ao rolar a página
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      fetchModels(null, searchTerm);
-    }, 500);
+    const handleScroll = () => setShowScrollTop(window.scrollY > 400);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, scriptUrl]);
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    if (selectedAlbum) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [selectedAlbum]);
-
-  const handleWhatsAppRedirect = () => {
-    const message = encodeURIComponent("Olá, vim pelo site, queria fazer o pedido de um modelo que não encontrei no site.");
-    window.open(`https://wa.me/5583993913523?text=${message}`, '_blank');
+  // Funis de Venda WhatsApp
+  const handleWhatsappDefault = () => {
+    const msg = `Olá, vim pelo site e queria ver outros modelos além do que encontrei no site!${searchTerm ? ` Estava procurando por: ${searchTerm}` : ''}`;
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
-  const handleWhatsAppRedirectPedido = () => {
-    if (!selectedAlbum) return;
-    const message = encodeURIComponent(`Olá, vim pelo site, queria fazer o pedido do modelo: *${selectedAlbum.name}*`);
-    window.open(`https://wa.me/5583993913523?text=${message}`, '_blank');
+  const handleWhatsappNotFound = () => {
+    const msg = `Olá, vim pelo site e me interessei, mas não encontrei o modelo que eu queria!${searchTerm ? ` Busquei por: ${searchTerm}` : ''}`;
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
-  const handleReport = async (e, model) => {
-    e.stopPropagation();
-    if (reportingId) return;
-    
-    // Confirmação dupla para não reportar sem querer
-    if (!window.confirm(`Deseja denunciar "${model.name}" como conteúdo Explícito/Sensível? A IA analisará na hora.`)) return;
-    
-    setReportingId(model.id);
-    try {
-      const BACKEND_URL = window.location.hostname === 'localhost' 
-          ? 'http://localhost:3000/api/report' 
-          : 'https://imagine-com.onrender.com/api/report';
-
-      const res = await fetch(BACKEND_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-           folderId: model.id, 
-           imageUrl: model.images[0]?.url.startsWith('http') ? model.images[0].url : `https://imagine-com.onrender.com${model.images[0]?.url}` 
-        })
-      });
-      const data = await res.json();
-      
-      if (data.banned) {
-         alert('🚨 Denúncia Aceita: O conteúdo foi removido/ocultado pela IA.');
-         // Atualiza Tela Imediatamente
-         setModels(prev => prev.map(m => m.id === model.id ? { ...m, isNsfw: true } : m));
-      } else {
-         alert('ℹ️ Denúncia Verificada: O Sistema de IA não detectou violações drásticas. A denúncia foi arquivada.');
-      }
-    } catch(err) {
-      alert('Erro de comunicação. O servidor de IA está ocupado no momento.');
-    } finally {
-      setReportingId(null);
-    }
-  };
-
-  const openAlbum = (model) => {
-    if (model.isNsfw && !ageConfirmed) {
-      setPendingNsfwAlbum(model);
-    } else {
-      setSelectedAlbum(model);
-      setCurrentImageIndex(0);
-    }
-  };
-
-  const closeAlbum = () => {
-    setSelectedAlbum(null);
-  };
-
-  const nextImage = (e) => {
-    e.stopPropagation();
-    if (selectedAlbum && currentImageIndex < selectedAlbum.images.length - 1) {
-      setCurrentImageIndex(prev => prev + 1);
-    }
-  };
-
-  const prevImage = (e) => {
-    e.stopPropagation();
-    if (currentImageIndex > 0) {
-      setCurrentImageIndex(prev => prev - 1);
-    }
+  const handleWhatsappBuy = (model) => {
+    const hierarquia = model.breadcrumb || `${model.category} > ${model.title}`;
+    const msg = `Olá, vim pelo site e gostei muito de um modelo!\n\n*É esse que eu quero:*\n📂 ${hierarquia}`;
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white pt-24 pb-20 px-6">
-      <div className="max-w-6xl mx-auto space-y-12">
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
+      {/* Header Fixo Minimalista */}
+      <header className="sticky top-0 z-40 bg-[#0a0a0a]/90 backdrop-blur-xl border-b border-white/5 py-6 px-6">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-6 items-center justify-between">
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            <Link
+              to="/"
+              className="p-3 bg-white/5 rounded-full hover:bg-[#00ff41] hover:text-black transition-all group"
+              title="Voltar ao início"
+            >
+              <ChevronLeft className="group-hover:-translate-x-1 transition-transform" />
+            </Link>
+            <h1 className="text-2xl font-black uppercase tracking-tighter italic">Cátalogo de Modelos</h1>
+          </div>
 
-        {/* Header & Search Bar */}
-        <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 text-gray-400 hover:text-[#00ff41] transition-colors self-start md:self-auto font-bold uppercase text-sm tracking-widest"
-          >
-            <ChevronLeft size={20} /> Voltar
-          </button>
-
-          <div className="w-full md:max-w-xl relative">
+          <div className="relative w-full md:w-96">
             <input
               type="text"
-              placeholder="Pesquisar por modelo..."
+              placeholder="PESQUISAR MODELOS..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-[#1a1a1a] border border-white/10 rounded-full py-4 pl-14 pr-6 text-white focus:outline-none focus:border-[#00ff41] transition-colors"
+              className="w-full bg-[#111] border-2 border-white/10 rounded-full px-6 py-4 pl-14 text-white placeholder-gray-500 focus:outline-none focus:border-[#00ff41] transition-colors font-bold tracking-widest uppercase text-sm"
             />
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
           </div>
         </div>
+      </header>
 
-        {/* Content Area */}
-        {loading ? (
-          <div className="h-64 flex flex-col items-center justify-center gap-4 text-gray-400">
-            <Loader2 className="animate-spin text-[#00ff41]" size={40} />
-            <p className="uppercase tracking-widest text-sm font-bold">Carregando modelos...</p>
-          </div>
-        ) : error ? (
-          <div className="h-64 flex flex-col items-center justify-center gap-4 text-red-400">
-            <p className="text-center max-w-lg">{error}</p>
+      {/* Aviso Oficial (Solicitado pelo Lojista) */}
+      <div className="bg-[#111] border-b border-[#00ff41]/20 p-3 text-center">
+        <p className="text-[#00ff41] text-xs md:text-sm font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+          <InfoIcon /> Atenção: Este é um mostruário dos nossos modelos mais procurados. Não achou o que procura? Entre em contato!
+        </p>
+      </div>
+
+      {/* Régua de Categorias Horizontal */}
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-hide">
+          {CATEGORIES.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`whitespace-nowrap px-6 py-2.5 rounded-full font-bold uppercase tracking-widest text-xs transition-all border-2 
+                  ${selectedCategory === cat
+                  ? 'bg-[#00ff41] border-[#00ff41] text-black shadow-[0_0_15px_rgba(0,255,65,0.4)]'
+                  : 'bg-transparent border-white/20 text-gray-400 hover:border-white/50 hover:text-white'}`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <main className="max-w-6xl mx-auto px-6 pb-24">
+        {filteredModels.length === 0 ? (
+          <div className="h-[40vh] flex flex-col items-center justify-center gap-4 text-center border border-dashed border-white/10 rounded-2xl p-8 bg-[#111]">
+            <Search size={48} className="text-gray-600 mb-2" />
+            <h3 className="text-2xl font-black uppercase tracking-tighter">Nada encontrado</h3>
+            <p className="text-gray-400 max-w-sm text-sm mb-6">Nenhum modelo estático bateu com "{searchTerm}" na categoria {selectedCategory}.</p>
+
+            {/* CTA Vazio -> Buscar Nuvem / Especial */}
+            <button
+              onClick={handleWhatsappNotFound}
+              className="bg-[#00ff41] text-black px-8 py-4 rounded-full font-black uppercase tracking-widest hover:bg-white transition-all flex items-center gap-2 animate-pulse hover:animate-none"
+            >
+              Não encontrou? Fale no WhatsApp! <MessageCircle size={18} />
+            </button>
           </div>
         ) : (
           <>
-            {models.length === 0 ? (
-              /* No Results State */
-              <div className="h-[50vh] flex flex-col items-center justify-center gap-6 text-center border border-dashed border-white/10 rounded-2xl p-8 bg-[#111]">
-                <Search size={48} className="text-gray-600 mb-2" />
-                <h3 className="text-3xl font-black uppercase tracking-tighter">Modelo não encontrado</h3>
-                <p className="text-gray-400 max-w-md">Não encontrou o que procurava? Fale conosco direto no WhatsApp e nós produzimos para você!</p>
-                <button
-                  onClick={handleWhatsAppRedirect}
-                  className="mt-4 bg-[#00ff41] text-black px-8 py-4 font-black uppercase tracking-tighter hover:bg-white transition-all flex items-center gap-2 rounded-full"
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-16">
+              {filteredModels.map((model) => (
+                <div
+                  key={model.id}
+                  onClick={() => { setSelectedModel(model); setCurrentImageIndex(0); }}
+                  className="group cursor-pointer bg-[#1a1a1a] border border-white/5 rounded-xl overflow-hidden hover:border-[#00ff41] transition-all shadow-lg hover:shadow-[0_0_20px_rgba(0,255,65,0.15)] flex flex-col"
                 >
-                  <MessageCircle size={20} /> Solicitar via WhatsApp
-                </button>
-              </div>
-            ) : (
-              /* Gallery Grid */
-              <div className="space-y-16">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {models.map((model) => (
-                    <div
-                      key={model.id}
-                      onClick={() => openAlbum(model)}
-                      className="group cursor-pointer bg-[#1a1a1a] border border-white/5 rounded-xl overflow-hidden hover:border-[#00ff41]/50 transition-all"
-                    >
-                      <div className="aspect-square relative overflow-hidden bg-[#222]">
-                        <img
-                          // O Backend Server serve o proxy da imagem
-                          src={model.images[0]?.url.startsWith('http') ? model.images[0].url : `https://imagine-com.onrender.com${model.images[0]?.url}`}
-                          alt={model.name}
-                          className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ${model.isNsfw && !ageConfirmed ? 'blur-[40px] scale-150 grayscale-[50%]' : ''}`}
-                          loading="lazy"
-                        />
-                        
-                        {/* Botão de Denúncia Flutuante Inteligente */}
-                        {!model.isNsfw && (
-                          <button 
-                             onClick={(e) => handleReport(e, model)}
-                             disabled={reportingId === model.id}
-                             title="Denunciar como Adulto (+18)"
-                             className="absolute top-3 left-3 bg-black/40 hover:bg-red-600/90 backdrop-blur-md p-2 rounded-full text-white/50 hover:text-white opacity-0 group-hover:opacity-100 transition-all z-10 disabled:opacity-100"
-                          >
-                            {reportingId === model.id ? <Loader2 size={16} className="animate-spin text-white" /> : <Flag size={16} />}
-                          </button>
-                        )}
-                        {/* Seleção +18 Minimalista */}
-                        {model.isNsfw && !ageConfirmed && (
-                           <div className="absolute inset-0 flex items-end justify-start p-3 bg-black/20 transition-all">
-                              <div className="bg-red-500/20 backdrop-blur-md text-red-500 font-black px-3 py-1.5 rounded-md border border-red-500/30 text-sm tracking-widest shadow-[0_0_10px_rgba(239,68,68,0.2)]">
-                                +18
-                              </div>
-                           </div>
-                        )}
-                        {model.images.length > 1 && (
-                          <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-bold border border-white/10 text-white">
-                            <ImageIcon size={14} className="text-[#00ff41]" />
-                            {model.images.length}
-                          </div>
-                        )}
-                      </div>
-                      <div className="p-4">
-                        <h4 className="font-bold text-lg truncate"></h4>
-                        <p className="text-xs text-gray-500 uppercase tracking-widest mt-1">
-                          {model.images.length > 1 ? 'Ver Álbum' : 'Ver Imagem'}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                  <div className="aspect-square relative overflow-hidden bg-[#222]">
+                    <img
+                      src={model.url}
+                      alt={model.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                      loading="lazy"
+                    />
 
-                {/* Load More Button */}
-                {nextPageToken && (
-                  <div className="flex justify-center mt-12 mb-8">
+                    {/* Badge de Álbum caso tenha várias imagens */}
+                    {model.images && model.images.length > 1 && (
+                      <div className="absolute top-3 right-3 bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border border-white/20 text-white shadow-sm flex items-center gap-1.5">
+                        <ImageIcon size={14} className="text-[#00ff41]" /> {model.images.length}
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-5 flex flex-col flex-1 justify-between">
+                    <div>
+                      <h4 className="font-bold text-lg tracking-tight truncate text-white">{model.title}</h4>
+                    </div>
+
                     <button
-                      onClick={() => fetchModels(nextPageToken, searchTerm)}
-                      disabled={loadingMore}
-                      className="bg-transparent border-2 border-white/20 text-white px-8 py-3 font-bold uppercase tracking-widest hover:border-[#00ff41] hover:text-[#00ff41] transition-all rounded-full disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      onClick={(e) => { e.stopPropagation(); handleWhatsappBuy(model); }}
+                      className="mt-4 w-full bg-transparent border border-[#00ff41] text-[#00ff41] py-2.5 rounded hover:bg-[#00ff41] hover:text-black font-bold uppercase text-xs tracking-widest transition-colors flex justify-center items-center gap-2"
                     >
-                      {loadingMore ? (
-                        <><Loader2 className="animate-spin" size={18} /> Carregando...</>
-                      ) : (
-                        "Mostrar Mais Modelos"
-                      )}
+                      É Esse que eu quero!
                     </button>
                   </div>
-                )}
-
-                {/* Not Found CTA at the bottom */}
-                <div className="flex flex-col sm:flex-row items-center justify-between bg-[#111] border border-[#00ff41]/20 rounded-2xl p-8 gap-6">
-                  <div className="space-y-1 text-center sm:text-left">
-                    <h3 className="text-xl font-black uppercase tracking-tighter">Não encontrou o modelo que deseja?</h3>
-                    <p className="text-gray-400 text-sm">Entre em contato que lhe ajudamos.</p>
-                  </div>
-                  <button
-                    onClick={handleWhatsAppRedirect}
-                    className="bg-transparent border-2 border-[#00ff41] text-[#00ff41] px-6 py-3 font-black uppercase tracking-tighter hover:bg-[#00ff41] hover:text-black transition-all flex items-center gap-2 rounded-full whitespace-nowrap"
-                  >
-                    <MessageCircle size={18} /> Pedir no WhatsApp
-                  </button>
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
+
+            {/* Fim da Lista -> Rodapé de Contato Secundário */}
+            <div className="flex flex-col items-center justify-center text-center p-12 bg-[#111] rounded-2xl border border-white/5 space-y-4">
+              <h3 className="text-xl font-black uppercase tracking-widest text-[#00ff41]">Chegou ao fim!</h3>
+              <p className="text-gray-400 text-sm max-w-lg mb-2">Se você não gostou de nenhum modelo da vitrine atual, saiba que temos milhares de outras opções no nosso acervo fechado.</p>
+              <button
+                onClick={handleWhatsappDefault}
+                className="bg-white text-black px-8 py-4 rounded-full font-black uppercase tracking-widest hover:bg-[#00ff41] hover:text-black transition-all flex items-center gap-2"
+              >
+                Ver Outros Modelos no WhatsApp
+              </button>
+            </div>
           </>
         )}
-      </div>
+      </main>
 
-      {/* Album Modal */}
-      {selectedAlbum && (
-        <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4">
+      {/* MODAL DE ÁLBUM (Quando clica no card inteiro) */}
+      {selectedModel && (
+        <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 backdrop-blur-sm">
           <button
-            onClick={closeAlbum}
-            className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-[#00ff41] hover:text-black rounded-full transition-all text-white z-10"
+            onClick={() => setSelectedModel(null)}
+            className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-red-500 rounded-full text-white transition-colors z-50"
           >
             <X size={24} />
           </button>
 
-          <div className="max-w-5xl w-full h-[90vh] flex flex-col pt-10">
-            <div className="text-center mb-6">
-              <h3 className="text-2xl font-black uppercase tracking-tighter">{selectedAlbum.name}</h3>
-              <p className="text-gray-400 text-sm tracking-widest uppercase mt-1">
-                Imagem {currentImageIndex + 1} de {selectedAlbum.images.length}
-              </p>
-            </div>
-
-            <div className="flex-1 relative flex items-center justify-center min-h-0">
-              {/* Navigation Prev */}
-              {selectedAlbum.images.length > 1 && (
-                <button
-                  onClick={prevImage}
-                  disabled={currentImageIndex === 0}
-                  className="absolute left-0 p-3 bg-black/50 border border-white/10 hover:border-[#00ff41] rounded-full disabled:opacity-30 disabled:hover:border-white/10 transition-all z-20 mix-blend-difference"
-                >
-                  <ChevronLeft size={32} />
-                </button>
-              )}
-
-              <div className="w-full h-full max-h-[60vh] flex items-center justify-center relative">
-                <img
-                  // Usa o Backend para abrir a imagem pesada sem dar erro de CORS do Google
-                  src={selectedAlbum.images[currentImageIndex].url.startsWith('http') ? selectedAlbum.images[currentImageIndex].url : `https://imagine-com.onrender.com${selectedAlbum.images[currentImageIndex].url}`}
-                  alt={`${selectedAlbum.name} - ${currentImageIndex + 1}`}
-                  className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg shadow-2xl"
-                />
+          <div className="w-full max-w-5xl bg-[#111] rounded-2xl overflow-hidden border border-white/10 flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b border-white/10 flex justify-between items-center z-10 bg-[#111]">
+              <div>
+                <h3 className="text-2xl font-black uppercase tracking-tighter text-[#00ff41]">{selectedModel.title}</h3>
               </div>
-
-              {/* Navigation Next */}
-              {selectedAlbum.images.length > 1 && (
-                <button
-                  onClick={nextImage}
-                  disabled={currentImageIndex === selectedAlbum.images.length - 1}
-                  className="absolute right-0 p-3 bg-black/50 border border-white/10 hover:border-[#00ff41] rounded-full disabled:opacity-30 disabled:hover:border-white/10 transition-all z-20 mix-blend-difference"
-                >
-                  <ChevronRight size={32} />
-                </button>
-              )}
+              <button
+                onClick={() => handleWhatsappBuy(selectedModel)}
+                className="hidden md:flex bg-[#00ff41] text-black px-6 py-3 rounded font-black uppercase tracking-widest hover:bg-white transition-colors items-center gap-2 text-sm drop-shadow-[0_0_10px_rgba(0,255,65,0.3)]"
+              >
+                É esse que eu quero! <MessageCircle size={16} />
+              </button>
             </div>
 
-            {/* Thumbnails */}
-            {selectedAlbum.images.length > 1 && (
-              <div className="mt-8 flex gap-2 overflow-x-auto pb-4 justify-center">
-                {selectedAlbum.images.map((img, idx) => (
+            {/* Carrossel de Imagem Única */}
+            <div className="relative flex-1 bg-black flex items-center justify-center min-h-[40vh] md:min-h-[60vh] overflow-hidden group">
+              {/* Imagem Atual */}
+              <img
+                src={selectedModel.images && selectedModel.images.length > 0 ? selectedModel.images[currentImageIndex] : selectedModel.url}
+                alt={`${selectedModel.title} Foto ${currentImageIndex + 1}`}
+                className="max-w-full max-h-full object-contain select-none"
+                loading="lazy"
+              />
+
+              {/* Controles do Carrossel (Visíveis apenas se houver mais de 1 imagem) */}
+              {selectedModel.images && selectedModel.images.length > 1 && (
+                <>
+                  {/* Botão Anterior */}
                   <button
-                    key={idx}
-                    onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(idx); }}
-                    className={`shrink-0 w-16 h-16 rounded-md overflow-hidden border-2 transition-all ${currentImageIndex === idx ? 'border-[#00ff41]' : 'border-transparent opacity-50 hover:opacity-100'}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentImageIndex(prev => prev === 0 ? selectedModel.images.length - 1 : prev - 1);
+                    }}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-black/50 text-white rounded-full hover:bg-[#00ff41] hover:text-black transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm border border-white/10 disabled:opacity-30"
                   >
-                    <img src={img.url.startsWith('http') ? img.url : `https://imagine-com.onrender.com${img.url}`} className="w-full h-full object-cover" alt="thumbnail" />
+                    <ChevronLeft size={24} />
                   </button>
-                ))}
-              </div>
-            )}
 
-            <button
-              onClick={handleWhatsAppRedirectPedido}
-              className="mt-6 mx-auto bg-[#00ff41] text-black px-6 py-3 font-black uppercase tracking-tighter hover:bg-white transition-all flex items-center gap-2 rounded-full"
-            >
-              <MessageCircle size={18} /> Quero este Modelo
-            </button>
-          </div>
-        </div>
-      )}
+                  {/* Botão Próximo */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentImageIndex(prev => prev === selectedModel.images.length - 1 ? 0 : prev + 1);
+                    }}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-black/50 text-white rounded-full hover:bg-[#00ff41] hover:text-black transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm border border-white/10"
+                  >
+                    <ChevronRight size={24} />
+                  </button>
 
-      {/* Age Gate Modal */}
-      {pendingNsfwAlbum && (
-        <div className="fixed inset-0 z-[110] bg-black/95 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-[#111] border border-red-900/50 rounded-2xl p-8 text-center space-y-6 shadow-2xl">
-            <div className="w-16 h-16 bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/30">
-              <span className="text-2xl font-black">+18</span>
+                  {/* Paginador (Bolinhas) */}
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-black/50 px-3 py-1.5 rounded-full backdrop-blur-sm border border-white/10">
+                    {selectedModel.images.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setCurrentImageIndex(idx)}
+                        className={`w-2.5 h-2.5 rounded-full transition-all ${idx === currentImageIndex ? 'bg-[#00ff41] scale-125' : 'bg-white/30 hover:bg-white/70'}`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
-            <h3 className="text-2xl font-black uppercase tracking-tighter text-white">Conteúdo Restrito</h3>
-            <p className="text-gray-400 text-sm leading-relaxed">
-              O modelo <strong>{pendingNsfwAlbum.name}</strong> pode conter nudez explícita ou imagens de caráter erotizado voltadas para o público adulto.
-            </p>
-            <div className="pt-4 space-y-3">
+
+            {/* Botão Mobile no Modal */}
+            <div className="p-4 border-t border-white/10 md:hidden">
               <button
-                onClick={() => {
-                  setAgeConfirmed(true);
-                  openAlbum(pendingNsfwAlbum);
-                  setPendingNsfwAlbum(null);
-                }}
-                className="w-full bg-red-600 text-white px-6 py-4 font-black uppercase tracking-tighter hover:bg-red-500 transition-colors rounded-xl flex justify-center items-center gap-2"
+                onClick={() => handleWhatsappBuy(selectedModel)}
+                className="w-full bg-[#00ff41] text-black px-6 py-4 rounded font-black uppercase tracking-widest hover:bg-white transition-colors flex items-center justify-center gap-2"
               >
-                Tenho mais de 18 anos
-              </button>
-              <button
-                onClick={() => setPendingNsfwAlbum(null)}
-                className="w-full bg-transparent border-2 border-white/10 text-gray-300 px-6 py-4 font-black uppercase tracking-tighter hover:bg-white/5 transition-colors rounded-xl"
-              >
-                Voltar com Segurança
+                É esse que eu quero! <MessageCircle size={18} />
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Botão Flutuante Voltar ao Topo */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-8 right-8 p-4 bg-[#00ff41] text-black rounded-full shadow-[0_0_20px_rgba(0,255,65,0.3)] hover:scale-110 hover:bg-white transition-all z-40 group animate-bounce"
+        >
+          <ArrowUp size={24} className="group-hover:-translate-y-1 transition-transform" />
+        </button>
+      )}
+
     </div>
   );
 };
+
+// Ícone simples de info pq do lucide ficou estranho em alguns renders
+const InfoIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"></circle>
+    <path d="M12 16v-4"></path>
+    <path d="M12 8h.01"></path>
+  </svg>
+);
 
 export default SearchPage;

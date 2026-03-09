@@ -1,8 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Instagram, MessageCircle, Mail, Send, CheckCircle2, Info, ShoppingBag, Star, Search } from 'lucide-react';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { Instagram, MessageCircle, Mail, Send, CheckCircle2, Info, ShoppingBag, Star, Search, Package, Smartphone, ChevronRight } from 'lucide-react';
 import SearchPage from './SearchPage';
-import AdminPanel from './AdminPanel';
-const App = () => {
+
+function App() {
+  // O URL do Google Apps Script depois de publicado
+  const [googleScriptUrl, setGoogleScriptUrl] = useState('https://script.google.com/macros/s/AKfycbyTDsQ35IuLcDY9Ln7ajA9YCASyYXPPh6CPmsSDDTKrUHdGlXHHN6ZxIBWiLwrAPxZh/exec');
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home googleScriptUrl={googleScriptUrl} />} />
+        <Route path="/modelos" element={<SearchPage scriptUrl={googleScriptUrl} />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+function Home({ googleScriptUrl }) {
   const [formData, setFormData] = useState({
     recomendaria: 'sim',
     qualidade: 'sim',
@@ -10,7 +25,6 @@ const App = () => {
   });
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState('home'); // 'home' | 'search'
 
   // Showcase Slider State
   const [showcaseImages, setShowcaseImages] = useState([]);
@@ -29,8 +43,8 @@ const App = () => {
         console.error("Erro ao carregar o showcase animado:", err);
       }
     };
-    if (currentPage === 'home') fetchShowcase();
-  }, [currentPage]);
+    fetchShowcase();
+  }, []);
 
   // Animação automática do Slider
   useEffect(() => {
@@ -43,9 +57,6 @@ const App = () => {
     return () => clearInterval(interval);
   }, [showcaseImages]);
 
-  // O URL do Google Apps Script depois de publicado
-  const [googleScriptUrl, setGoogleScriptUrl] = useState('https://script.google.com/macros/s/AKfycbyTDsQ35IuLcDY9Ln7ajA9YCASyYXPPh6CPmsSDDTKrUHdGlXHHN6ZxIBWiLwrAPxZh/exec');
-
   // URL da Logo carregada
   const logoUrl = "Logo3.0.svg";
   const logoFooterUrl = "LogoVerde3.0.svg";
@@ -55,7 +66,7 @@ const App = () => {
     setLoading(true);
     setStatus('enviando');
 
-    const GOOGLE_SHEET_URL = "https://script.google.com/macros/library/d/1Bz6D55eSvk6uRkW_VDjjKDNlp9fNYFL_Sv9o4qvKPIynI4ngru0ixyxC/1";
+    const GOOGLE_SHEET_URL = "https://script.google.com/macros/library/d/1Bz6D55eSvk6uRkW_VDjjDlp9fNYFL_Sv9o4qvKPIynI4ngru0ixyxC/1";
 
     if (!GOOGLE_SHEET_URL) {
       setTimeout(() => {
@@ -82,14 +93,6 @@ const App = () => {
     }
   };
 
-  if (currentPage === 'search') {
-    return <SearchPage onBack={() => setCurrentPage('home')} scriptUrl={googleScriptUrl} />;
-  }
-
-  if (currentPage === 'admin') {
-    return <AdminPanel onBack={() => setCurrentPage('home')} />;
-  }
-
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white font-sans selection:bg-[#08F868] selection:text-black">
 
@@ -107,8 +110,8 @@ const App = () => {
             <span className="text-2xl font-black text-black tracking-tighter uppercase italic">IMAGINE</span>
           </div>
           <div className="hidden md:flex gap-8 font-bold uppercase text-xs tracking-widest items-center">
-            <a href="#home" className="hover:text-white transition-colors text-[#000000]">Início</a>
-            <a onClick={() => setCurrentPage('search')} className="hover:text-white transition-colors text-[#000000] cursor-pointer">Modelos</a>
+            <Link to="/" className="hover:text-white transition-colors text-[#000000]">Início</Link>
+            <Link to="/modelos" className="hover:text-white transition-colors text-[#000000] cursor-pointer">Modelos</Link>
             <a href="#sobre" className="hover:text-white transition-colors text-[#000000]">Sobre</a>
             <a href="#feedback" className="hover:text-white transition-colors text-[#000000]">Feedback</a>
             <a href="#contato" className="hover:text-white transition-colors text-[#000000]">Contato</a>
@@ -131,9 +134,9 @@ const App = () => {
               Especialistas em impressão 3D de alta definição. De colecionáveis a decorações exclusivas, cada detalhe é cuidadosamente projetado para você.
             </p>
             <div className="flex gap-4">
-              <button onClick={() => setCurrentPage('search')} className="bg-[#00ff41] text-black px-8 py-4 font-black uppercase tracking-tighter hover:bg-white transition-all flex items-center gap-2 cursor-pointer">
+              <Link to="/modelos" className="bg-[#00ff41] text-black px-8 py-4 font-black uppercase tracking-tighter hover:bg-white transition-all flex items-center gap-2 cursor-pointer">
                 Ver Catálogo <Search size={18} />
-              </button>
+              </Link>
               <a href="https://wa.me/5583993913523" target="_blank" rel="noopener noreferrer" className="bg-transparent border-2 border-[#00ff41] text-[#00ff41] px-8 py-4 font-black uppercase tracking-tighter hover:bg-[#00ff41] hover:text-black transition-all flex items-center gap-2 hidden sm:flex">
                 WhatsApp <MessageCircle size={18} />
               </a>
@@ -327,11 +330,7 @@ const App = () => {
           </div>
 
           <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] uppercase font-bold tracking-[0.2em] text-gray-600">
-            <span 
-              onClick={() => setCurrentPage('admin')} 
-              className="cursor-pointer hover:text-[#00ff41] transition-colors"
-              title="Acessar Administração"
-            >
+            <span>
               © 2025 IMAGINE - ORÇAMENTO DE PEDIDOS
             </span>
             <span>Paraíba, Brasil</span>
@@ -340,6 +339,6 @@ const App = () => {
       </footer>
     </div>
   );
-};
+}
 
 export default App;

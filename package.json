@@ -8,19 +8,20 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run",
-    "start": "node backend/server.js",
-    "start:backend": "node backend/server.js"
+    "test": "vitest run"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
     "@tailwindcss/postcss": "^4.2.1",
+    "@tensorflow/tfjs": "^4.22.0",
+    "canvas": "^3.2.1",
     "cloudinary": "^2.9.0",
-    "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "googleapis": "^171.4.0",
+    "nsfwjs": "^4.2.1",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.13.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
